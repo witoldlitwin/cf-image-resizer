@@ -9,15 +9,42 @@ It provides a way to resize images on the fly, making it useful for web apps tha
 To use this image resize proxy, simply construct a URL in the following format:
 
 ```
-https://<your-worker-url>/image?url=<image_url>&w=<resized_width_in_pixel>
+https://<your-worker-url>/image?url=<image_url>&w=<resized_width_in_pixel>&format=<output_format>&quality=<jpeg_quality>
 ```
 
-Replace <your-worker-url> with the URL of your Cloudflare Worker. `<image_url>` should be replaced with the URL of the image you want to resize, and `<resized_width_in_pixel>` should be replaced with the desired width of the resized image, in pixels.
+### Parameters
 
-For example, to resize an image located at https://loremflickr.com/1000 to a width of 200 pixels, you would construct the following URL:
+- `url` (required): The URL of the image you want to resize
+- `w` (required): The desired width of the resized image, in pixels
+- `format` (optional): The output format. Supported values:
+  - `png` (default) - PNG format
+  - `jpeg` or `jpg` - JPEG format
+  - `webp` - WebP format
+- `quality` (optional): Image quality (0-100). Applies to:
+  - JPEG: Controls compression quality (default: 85)
+  - WebP: Accepted for API consistency but currently uses default encoding (default: 80)
+  - PNG: Ignored (lossless format)
 
+### Examples
+
+Basic resize to PNG (default format):
 ```
 https://<your-worker-url>/image?url=https://loremflickr.com/1000&w=200
+```
+
+Resize to JPEG with custom quality:
+```
+https://<your-worker-url>/image?url=https://loremflickr.com/1000&w=200&format=jpeg&quality=90
+```
+
+Resize to WebP:
+```
+https://<your-worker-url>/image?url=https://loremflickr.com/1000&w=200&format=webp
+```
+
+Resize to WebP with quality parameter (currently uses default encoding):
+```
+https://<your-worker-url>/image?url=https://loremflickr.com/1000&w=200&format=webp&quality=90
 ```
 
 ## License

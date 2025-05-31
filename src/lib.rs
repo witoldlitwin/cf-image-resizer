@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use image::imageops::FilterType;
-use image_util::{read_image, write_image};
+use image_util::{read_image, write_image, OutputFormat};
 use worker::*;
 mod fetcher;
 mod image_util;
@@ -46,8 +46,22 @@ pub async fn main(req: Request, env: Env, worker_ctx: worker::Context) -> Result
             };
 
             let w = match query.get("w") {
-                Some(res) => res.parse::<u32>().unwrap(),
+                Some(res) => match res.parse::<u32>() {
+                    Ok(width) => width,
+                    Err(_) => return Response::error("'w' parameter must be a valid number.", 400),
+                },
                 None => return Response::error("'w' parameter not provided.", 403),
+            };
+
+            // Parse format parameter (default to PNG for backward compatibility)
+            let format_str = query.get("format").map(|s| s.as_ref()).unwrap_or("png");
+
+            // Parse quality parameter for JPEG
+            let quality = query.get("quality").and_then(|q| q.parse::<u8>().ok());
+
+            let output_format = match OutputFormat::from_string(format_str, quality) {
+                Ok(format) => format,
+                Err(err) => return Response::error(&format!("Invalid format: {}", err), 400),
             };
 
             let cache = Cache::open("cache:image_proxy".to_string()).await;
@@ -63,14 +77,14 @@ pub async fn main(req: Request, env: Env, worker_ctx: worker::Context) -> Result
 
             let img = read_image(bytes);
             let resized = img.resize(w, img.height(), FilterType::Nearest);
-            let output_image = match write_image(resized) {
+            let output_image = match write_image(resized, output_format.clone()) {
                 Ok(image) => image,
-                Err(_) => return Response::error("failed to write image.", 500),
+                Err(err) => return Response::error(&format!("failed to write image: {}", err), 500),
             };
 
             let mut header = Headers::new();
             header.append("Accept-Ranges", "bytes").unwrap();
-            header.append("Content-Type", "image/png").unwrap();
+            header.append("Content-Type", output_format.content_type()).unwrap();
             header
                 .append("Content-Length", output_image.len().to_string().as_ref())
                 .unwrap();
