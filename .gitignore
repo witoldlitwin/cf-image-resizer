@@ -7,3 +7,9 @@ wasm-pack.log
 build/
 /target
 /dist
+
+# Yarn
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+.pnp.*
